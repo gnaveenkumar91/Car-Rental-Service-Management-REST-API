@@ -1,6 +1,8 @@
 package com.vcube.crsapp01.service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -11,6 +13,7 @@ import com.vcube.crsapp01.model.Booking;
 import com.vcube.crsapp01.model.BookingStatus;
 import com.vcube.crsapp01.model.Car;
 import com.vcube.crsapp01.model.Customer;
+import com.vcube.crsapp01.model.DamageReport;
 import com.vcube.crsapp01.repo.BookingRepository;
 import com.vcube.crsapp01.repo.CarRepository;
 import com.vcube.crsapp01.repo.CustomerRepository;
@@ -46,16 +49,16 @@ public class BookingServiceImpl implements BookingService {
 
 //		 double totalPrice = calculatePrice(car, start, end);
 
-	        Booking booking = new Booking();
-	        booking.setCar(car);
-	        booking.setCustomer(customer);
-	        booking.setStartDate(start);
-	        booking.setEndDate(end);
+		Booking booking = new Booking();
+		booking.setCar(car);
+		booking.setCustomer(customer);
+		booking.setStartDate(start);
+		booking.setEndDate(end);
 //	        booking.setTotalPrice(totalPrice);
-	        booking.setStatus(BookingStatus.BOOKED);
+		booking.setStatus(BookingStatus.BOOKED);
 
-	        return bookingRepository.save(booking);
-		
+		return bookingRepository.save(booking);
+
 	}
 
 	// 25th 27th
@@ -70,14 +73,54 @@ public class BookingServiceImpl implements BookingService {
 		}
 	}
 
+	private double calculatePrice(Car car, LocalDate start, LocalDate end) {
+
+		double total = 0;
+		for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+			if (date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+				total += car.getWeekendPrice();
+			} else {
+				total += car.getWeekdayPrice();
+			}
+		}
+		return total;
+	}
+
 	@Override
 	public String returnCar(Long bookingId, LocalDate actualReturnDate, String damageDescription, Double repairCost) {
-		return null;
+
+		Booking booking = bookingRepository.findById(bookingId)
+				.orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+		double fine = calculateLateFine(booking, actualReturnDate);
+
+		if (repairCost != null && repairCost > 0) {
+			DamageReport report = new DamageReport();
+			report.setBooking(booking);
+			report.setDescription(damageDescription);
+			report.setRepairCost(repairCost);
+			damageReportRepository.save(report);
+
+			fine += repairCost;
+		}
+
+		booking.setStatus(BookingStatus.RETURNED);
+		bookingRepository.save(booking);
+
+		return "Car returned. Extra charges: ₹" + fine;
+	}
+
+	private double calculateLateFine(Booking booking, LocalDate actualReturnDate) {
+		if (actualReturnDate.isAfter(booking.getEndDate())) {
+			long lateDays = ChronoUnit.DAYS.between(booking.getEndDate(), actualReturnDate);
+			return lateDays * 1000;
+		}
+		return 0;
 	}
 
 	@Override
 	public List<Booking> getAllBookings() {
-		return null;
+		return bookingRepository.findAll();
 	}
 
 }
