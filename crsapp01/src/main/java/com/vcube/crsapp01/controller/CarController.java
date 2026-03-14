@@ -24,7 +24,7 @@ public class CarController {
 	public CarController(CarService carService) {
 		this.carService = carService;
 	}
-
+	
 	@PostMapping
 	public ResponseEntity<Car> addCar(@RequestBody Car car) {
 		return ResponseEntity.ok(carService.addCar(car));

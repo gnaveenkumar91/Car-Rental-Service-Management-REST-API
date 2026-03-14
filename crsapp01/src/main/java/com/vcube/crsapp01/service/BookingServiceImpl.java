@@ -1,4 +1,4 @@
-package com.vcube.crsapp01.service;
+  package com.vcube.crsapp01.service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -47,14 +47,14 @@ public class BookingServiceImpl implements BookingService {
 				.orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 		validateBookingConflict(car, start, end);
 
-//		 double totalPrice = calculatePrice(car, start, end);
+		 double totalPrice = calculatePrice(car, start, end);
 
 		Booking booking = new Booking();
 		booking.setCar(car);
 		booking.setCustomer(customer);
 		booking.setStartDate(start);
 		booking.setEndDate(end);
-//	        booking.setTotalPrice(totalPrice);
+	        booking.setTotalPrice(totalPrice);
 		booking.setStatus(BookingStatus.BOOKED);
 
 		return bookingRepository.save(booking);
